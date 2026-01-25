@@ -2,8 +2,6 @@ const fs = require('fs');
 const { ImapFlow } = require('imapflow');
 const nodemailer = require('nodemailer');
 const openpgp = require('openpgp');
-// const postal_mime = require('postal-mime');
-// ^ For additional parsing.
 console.log('This is a proof of concept for the mail media proposal.');
 
 // Step #1: Gather Information
@@ -18,12 +16,14 @@ const pgp_password = 'thisisatest';
 console.log('Generating keypair...');
 // RSA for simplicity. Change cipher on final product!
 (async () => {
-    const { privateKey, publicKey } = await openpgp.generateKey({
+    const { priKey, pubKey } = await openpgp.generateKey({
         type: 'rsa',
         rsaBits: 4096,
         userIDs: [{ name: full_name, email: email_username }],
         passphrase: pgp_password 
     });
+    localStorage.setItem("testPub", pubKey);
+    localStorage.setItem("testPri", priKey);
 })();
 
 // There are a lot more email providers out there. Make sure they support IMAP & SMTP connections.
@@ -41,10 +41,10 @@ console.log('Creating data for storage & usage...');
 class email_settings {
 	constructor (user_address, user_password, pubKey, priKey) {
 		let provider = user_address.trim().split('@')[1].toLowerCase();
-		if (!provider in email_providers) {
-			throw new Error('Unsupported email address provided.');
-		} else {
+		if (provider in email_providers) {
 			this.host = email_providers['provider'];
+		} else {
+			throw new Error('Unsupported email address provided.');
 		}
 		this.SMTPport = 587;
 		this.IMAPport = 993;
@@ -55,7 +55,7 @@ class email_settings {
 		this.private_key = priKey;
 	}
 }
-const new_user = new email_settings(email_username, email_password, publicKey, privateKey);
+const new_user = new email_settings(email_username, email_password, localStorage.getItem('testPub'), localStorage.getItem('testPri'));
 console.log(`User Information: ${new_user}`);
 // By this point, you'd choose where to store this newly generated user data.
 localStorage.setItem('testuser', new_user);
